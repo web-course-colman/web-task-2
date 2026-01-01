@@ -3,6 +3,7 @@ const connectDB = require("./config/database");
 const bodyParser = require("body-parser");
 const swaggerJSDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const { authenticateToken } = require("./middleware/auth");
 
 const app = express();
 
@@ -10,9 +11,9 @@ const app = express();
 const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
-    title: "Posts API",
+    title: "Posts API with Authentication",
     version: "1.0.0",
-    description: "API for managing posts",
+    description: "API for managing posts with JWT authentication",
   },
   servers: [
     {
@@ -40,7 +41,8 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 connectDB();
 
 // Routes
-app.use("/post", require("./routes/post"));
+app.use("/auth", require("./routes/auth"));
+app.use("/post", authenticateToken, require("./routes/post"));
 
 // Default route
 app.get("/", (req, res) => res.send("API Running"));
