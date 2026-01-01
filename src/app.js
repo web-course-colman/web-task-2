@@ -42,7 +42,7 @@ connectDB();
 
 // Routes
 app.use("/auth", require("./routes/auth"));
-app.use("/post", authenticateToken, require("./routes/post"));
+app.use("/post", require("./routes/post"));
 
 // Default route
 app.get("/", (req, res) => res.send("API Running"));
