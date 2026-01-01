@@ -3,12 +3,18 @@ const mongoose = require("mongoose");
 const Post = require("../src/models/Post");
 const User = require("../src/models/User");
 
+const testUser = {
+  username: "postTestuser",
+  email: "postTest@example.com",
+  password: "password123",
+};
+
 let app;
 let accessToken;
 
 beforeAll(async () => {
   // Set test database URI
-  process.env.MONGO_URI = "mongodb://localhost:27017/web-task-2-test";
+  process.env.MONGO_URI = "mongodb://localhost:27017/web-task-2-test-post";
   // Require app, which will connect to test DB
   app = require("../src/app");
 });
@@ -16,15 +22,11 @@ beforeAll(async () => {
 const getToken = async () => {
   if (!accessToken) {
     // Register and login to get token
-    await request(app).post("/auth/register").send({
-      username: "testuser",
-      email: "test@example.com",
-      password: "password123",
-    });
+    await request(app).post("/auth/register").send(testUser);
 
     const loginRes = await request(app).post("/auth/login").send({
-      email: "test@example.com",
-      password: "password123",
+      email: testUser.email,
+      password: testUser.password,
     });
 
     accessToken = loginRes.body.accessToken;
@@ -119,57 +121,5 @@ describe("Posts API", () => {
 
     expect(response.body.message).toBe("Updated message");
     expect(response.body.sender).toBe("Updated sender");
-  });
-});
-
-describe("Auth API", () => {
-  it("should register a new user", async () => {
-    const response = await request(app)
-      .post("/auth/register")
-      .send({
-        username: "testuser",
-        email: "test@example.com",
-        password: "password123",
-      })
-      .expect(201);
-
-    expect(response.body.message).toBe("User registered successfully");
-  });
-
-  it("should login user", async () => {
-    await User.create({
-      username: "testuser",
-      email: "test@example.com",
-      password: await require("bcryptjs").hash("password123", 10),
-    });
-
-    const response = await request(app)
-      .post("/auth/login")
-      .send({
-        email: "test@example.com",
-        password: "password123",
-      })
-      .expect(200);
-
-    expect(response.body.accessToken).toBeDefined();
-    expect(response.body.refreshToken).toBeDefined();
-  });
-
-  it("should logout user", async () => {
-    const user = await User.create({
-      username: "testuser",
-      email: "test@example.com",
-      password: await require("bcryptjs").hash("password123", 10),
-      refreshTokens: ["refreshToken123"],
-    });
-
-    const response = await request(app)
-      .post("/auth/logout")
-      .send({
-        refreshToken: "refreshToken123",
-      })
-      .expect(200);
-
-    expect(response.body.message).toBe("Logged out successfully");
   });
 });
