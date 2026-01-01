@@ -24,6 +24,11 @@ router.get("/:id", getPostById);
 // @access  Public
 router.post("/", addPost);
 
+// @route   GET /post?sender=<sender_id>
+// @desc    Get posts by sender
+// @access  Public
+router.get("/", getPostsBySender);
+
 // @route   PUT /post/:id
 // @desc    Update post by ID
 // @access  Public
