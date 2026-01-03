@@ -3,7 +3,6 @@ import {
   addPost,
   getAllPosts,
   getPostById,
-  getPostsBySender,
   updatePost,
 } from "../controllers/post";
 
@@ -143,10 +142,7 @@ router.get("/:id", getPostById);
  */
 router.post("/", addPost);
 
-// @route   GET /post?sender=<sender_id>
-// @desc    Get posts by sender
-// @access  Private
-router.get("/", getPostsBySender);
+
 
 /**
  * @swagger

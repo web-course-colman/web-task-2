@@ -58,24 +58,6 @@ const getPostById = async (
   }
 };
 
-const getPostsBySender = async (
-  req: express.Request,
-  res: express.Response
-): Promise<any> => {
-  try {
-    const { sender } = req.query as { sender: string };
-    if (!sender) {
-      return res
-        .status(400)
-        .json({ message: "Sender query parameter is required" });
-    }
-    const posts = await Post.find({ sender }).sort({ createdAt: -1 });
-    return res.json(posts);
-  } catch (error) {
-    return res.status(500).json({ message: (error as Error).message });
-  }
-};
-
 const updatePost = async (
   req: express.Request,
   res: express.Response
@@ -104,4 +86,4 @@ const updatePost = async (
   }
 };
 
-export { addPost, getAllPosts, getPostById, getPostsBySender, updatePost };
+export { addPost, getAllPosts, getPostById, updatePost };
