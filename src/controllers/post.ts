@@ -6,12 +6,13 @@ const addPost = async (
   res: express.Response
 ): Promise<any> => {
   try {
-    const { message, sender } = req.body;
+    const { message } = req.body;
+    const sender = (req as any).user.id;
 
-    if (!message || !sender) {
+    if (!message) {
       return res
         .status(400)
-        .json({ message: "Message and sender are required" });
+        .json({ message: "Message is required" });
     }
 
     const post = new Post({
@@ -63,12 +64,13 @@ const updatePost = async (
   res: express.Response
 ): Promise<any> => {
   try {
-    const { message, sender } = req.body;
+    const { message } = req.body;
+    const sender = (req as any).user.id;
 
-    if (!message || !sender) {
+    if (!message) {
       return res
         .status(400)
-        .json({ message: "Message and sender are required" });
+        .json({ message: "Message is required" });
     }
 
     const post = await Post.findById(req.params.id);
@@ -76,8 +78,12 @@ const updatePost = async (
       return res.status(404).json({ message: "Post not found" });
     }
 
+    // Check if user is the sender
+    if (post.sender.toString() !== sender) {
+      return res.status(403).json({ message: "Unauthorized to update this post" });
+    }
+
     post.message = message;
-    post.sender = sender;
 
     const updatedPost = await post.save();
     return res.json(updatedPost);

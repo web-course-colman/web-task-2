@@ -3,12 +3,13 @@ import Comment from "../models/Comments";
 
 const addComment = async (req: Request, res: Response) => {
     try {
-        const { postId, message, sender } = req.body;
+        const { postId, message } = req.body;
+        const sender = (req as any).user.id;
 
-        if (!postId || !message || !sender) {
+        if (!postId || !message) {
             return res
                 .status(400)
-                .json({ message: "Post ID, message, and sender are required" });
+                .json({ message: "Post ID and message are required" });
         }
 
         const comment = new Comment({
@@ -51,12 +52,13 @@ const getCommentById = async (req: Request, res: Response) => {
 
 const updateComment = async (req: Request, res: Response) => {
     try {
-        const { message, sender, postId } = req.body;
+        const { message, postId } = req.body;
+        const sender = (req as any).user.id;
 
-        if (!message || !sender || !postId) {
+        if (!message || !postId) {
             return res
                 .status(400)
-                .json({ message: "Post ID, message, and sender are required" });
+                .json({ message: "Post ID and message are required" });
         }
 
         const comment = await Comment.findById(req.params.id);
@@ -64,8 +66,12 @@ const updateComment = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Comment not found" });
         }
 
+        // Check if user is the sender
+        if (comment.sender.toString() !== sender) {
+            return res.status(403).json({ message: "Unauthorized to update this comment" });
+        }
+
         comment.message = message;
-        comment.sender = sender;
         comment.postId = postId;
 
         const updatedComment = await comment.save();
@@ -77,10 +83,19 @@ const updateComment = async (req: Request, res: Response) => {
 
 const deleteComment = async (req: Request, res: Response) => {
     try {
-        const comment = await Comment.findByIdAndDelete(req.params.id);
+        const sender = (req as any).user.id;
+        const comment = await Comment.findById(req.params.id);
+
         if (!comment) {
             return res.status(404).json({ message: "Comment not found" });
         }
+
+        // Check if user is the sender
+        if (comment.sender.toString() !== sender) {
+            return res.status(403).json({ message: "Unauthorized to delete this comment" });
+        }
+
+        await Comment.findByIdAndDelete(req.params.id);
         res.json({ message: "Comment deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: (error as Error).message });

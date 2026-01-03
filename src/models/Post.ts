@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 interface IPost {
   message: string;
-  sender: string;
+  sender: mongoose.Schema.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -12,7 +12,8 @@ const postSchema = new mongoose.Schema<IPost>({
     required: true,
   },
   sender: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
     required: true,
   },
   createdAt: {

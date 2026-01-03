@@ -41,9 +41,11 @@ const getToken = async () => {
 // Helper to create a post for comments
 const createTestPost = async () => {
     if (!testPostId) {
+        await getToken(); // Ensure user is registered
+        const user = await User.findOne({ email: testUser.email });
         const post = await Post.create({
             message: "Test Post for Comments",
-            sender: "Test Sender",
+            sender: user!._id,
         });
         testPostId = post._id.toString();
     }
@@ -74,27 +76,28 @@ describe("Comments API", () => {
             .send({
                 postId,
                 message: "Test comment",
-                sender: "Commenter",
             })
             .expect(201);
 
         expect(response.body.message).toBe("Test comment");
-        expect(response.body.sender).toBe("Commenter");
+        const user = await User.findOne({ email: testUser.email });
+        expect(response.body.sender).toBe(user!._id.toString());
         expect(response.body.postId).toBe(postId);
     });
 
     it("should get comments for a post", async () => {
         const token = await getToken();
         const postId = await createTestPost();
+        const user = await User.findOne({ email: testUser.email });
         await Comment.create({
             postId,
             message: "Comment 1",
-            sender: "Sender 1",
+            sender: user!._id,
         });
         await Comment.create({
             postId,
             message: "Comment 2",
-            sender: "Sender 2",
+            sender: user!._id,
         });
 
         const response = await request(app)
@@ -108,10 +111,11 @@ describe("Comments API", () => {
     it("should get comment by id", async () => {
         const token = await getToken();
         const postId = await createTestPost();
+        const user = await User.findOne({ email: testUser.email });
         const comment = await Comment.create({
             postId,
             message: "Comment to find",
-            sender: "Sender",
+            sender: user!._id,
         });
 
         const response = await request(app)
@@ -125,10 +129,11 @@ describe("Comments API", () => {
     it("should update comment", async () => {
         const token = await getToken();
         const postId = await createTestPost();
+        const user = await User.findOne({ email: testUser.email });
         const comment = await Comment.create({
             postId,
             message: "Old Message",
-            sender: "Old Sender",
+            sender: user!._id,
         });
 
         const response = await request(app)
@@ -137,21 +142,40 @@ describe("Comments API", () => {
             .send({
                 postId,
                 message: "Updated Message",
-                sender: "Updated Sender",
             })
             .expect(200);
 
         expect(response.body.message).toBe("Updated Message");
-        expect(response.body.sender).toBe("Updated Sender");
+    });
+
+    it("should fail to update comment of another user", async () => {
+        const token = await getToken();
+        const postId = await createTestPost();
+        const otherUser = await User.create({ username: "otherC", email: "otherC@t.com", password: "p" });
+        const comment = await Comment.create({
+            postId,
+            message: "Other user comment",
+            sender: otherUser._id,
+        });
+
+        await request(app)
+            .put(`/comments/${comment._id}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                postId,
+                message: "Attempted update",
+            })
+            .expect(403);
     });
 
     it("should delete comment", async () => {
         const token = await getToken();
         const postId = await createTestPost();
+        const user = await User.findOne({ email: testUser.email });
         const comment = await Comment.create({
             postId,
             message: "Delete Me",
-            sender: "Sender",
+            sender: user!._id,
         });
 
         await request(app)
@@ -162,4 +186,22 @@ describe("Comments API", () => {
         const check = await Comment.findById(comment._id);
         expect(check).toBeNull();
     });
+
+    it("should fail to delete comment of another user", async () => {
+        const token = await getToken();
+        const postId = await createTestPost();
+        const otherUser = await User.create({ username: "otherCD", email: "otherCD@t.com", password: "p" });
+        const comment = await Comment.create({
+            postId,
+            message: "Other user comment",
+            sender: otherUser._id,
+        });
+
+        await request(app)
+            .delete(`/comments/${comment._id}`)
+            .set("Authorization", `Bearer ${token}`)
+            .expect(403);
+    });
 });
+
+

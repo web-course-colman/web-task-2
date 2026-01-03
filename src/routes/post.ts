@@ -107,14 +107,10 @@ router.get("/:id", getPostById);
  *             type: object
  *             required:
  *               - message
- *               - sender
  *             properties:
  *               message:
  *                 type: string
  *                 description: Post message
- *               sender:
- *                 type: string
- *                 description: Sender ID
  *     responses:
  *       201:
  *         description: Post created successfully
@@ -142,8 +138,6 @@ router.get("/:id", getPostById);
  */
 router.post("/", addPost);
 
-
-
 /**
  * @swagger
  * /post/{id}:
@@ -167,14 +161,10 @@ router.post("/", addPost);
  *             type: object
  *             required:
  *               - message
- *               - sender
  *             properties:
  *               message:
  *                 type: string
  *                 description: Updated post message
- *               sender:
- *                 type: string
- *                 description: Updated sender ID
  *     responses:
  *       200:
  *         description: Post updated successfully
@@ -197,6 +187,8 @@ router.post("/", addPost);
  *                   format: date-time
  *       400:
  *         description: Bad request - missing fields
+ *       403:
+ *         description: Forbidden - unauthorized
  *       404:
  *         description: Post not found
  *       500:

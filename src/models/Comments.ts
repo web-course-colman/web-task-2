@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 interface IComment {
     postId: mongoose.Schema.Types.ObjectId;
     message: string;
-    sender: string;
+    sender: mongoose.Schema.Types.ObjectId;
     createdAt: Date;
 }
 
@@ -18,7 +18,8 @@ const commentSchema = new mongoose.Schema<IComment>({
         required: true,
     },
     sender: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
         required: true,
     },
     createdAt: {
