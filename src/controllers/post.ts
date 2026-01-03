@@ -1,6 +1,10 @@
-const Post = require("../models/Post");
+import express from "express";
+import Post from "../models/Post";
 
-const addPost = async (req, res) => {
+const addPost = async (
+  req: express.Request,
+  res: express.Response
+): Promise<any> => {
   try {
     const { message, sender } = req.body;
 
@@ -16,54 +20,66 @@ const addPost = async (req, res) => {
     });
 
     const savedPost = await post.save();
-    res.status(201).json(savedPost);
+    return res.status(201).json(savedPost);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: (error as Error).message });
   }
 };
 
-const getAllPosts = async (req, res) => {
+const getAllPosts = async (
+  req: express.Request,
+  res: express.Response
+): Promise<any> => {
   try {
-    const { sender } = req.query;
-    let query = {};
+    const { sender } = req.query as { sender?: string };
+    let query: any = {};
     if (sender) {
       query.sender = sender;
     }
     const posts = await Post.find(query).sort({ createdAt: -1 });
-    res.json(posts);
+    return res.json(posts);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: (error as Error).message });
   }
 };
 
-const getPostById = async (req, res) => {
+const getPostById = async (
+  req: express.Request,
+  res: express.Response
+): Promise<any> => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
-    res.json(post);
+    return res.json(post);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: (error as Error).message });
   }
 };
 
-const getPostsBySender = async (req, res) => {
+const getPostsBySender = async (
+  req: express.Request,
+  res: express.Response
+): Promise<any> => {
   try {
-    const { sender } = req.query;
+    const { sender } = req.query as { sender: string };
     if (!sender) {
       return res
         .status(400)
         .json({ message: "Sender query parameter is required" });
     }
     const posts = await Post.find({ sender }).sort({ createdAt: -1 });
-    res.json(posts);
+    return res.json(posts);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: (error as Error).message });
   }
 };
 
-const updatePost = async (req, res) => {
+const updatePost = async (
+  req: express.Request,
+  res: express.Response
+): Promise<any> => {
   try {
     const { message, sender } = req.body;
 
@@ -82,16 +98,10 @@ const updatePost = async (req, res) => {
     post.sender = sender;
 
     const updatedPost = await post.save();
-    res.json(updatedPost);
+    return res.json(updatedPost);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: (error as Error).message });
   }
 };
 
-module.exports = {
-  addPost,
-  getAllPosts,
-  getPostById,
-  getPostsBySender,
-  updatePost,
-};
+export { addPost, getAllPosts, getPostById, getPostsBySender, updatePost };

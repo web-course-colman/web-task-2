@@ -1,32 +1,37 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   addPost,
   getAllPosts,
   getPostById,
   getPostsBySender,
   updatePost,
-} = require("../controllers/post");
+} from "../controllers/post";
 
 const router = express.Router();
 
 // @route   GET /post
 // @desc    Get all posts
-// @access  Public
+// @access  Private
 router.get("/", getAllPosts);
 
 // @route   GET /post/:id
 // @desc    Get post by ID
-// @access  Public
+// @access  Private
 router.get("/:id", getPostById);
 
 // @route   POST /post
 // @desc    Add a new post
-// @access  Public
+// @access  Private
 router.post("/", addPost);
+
+// @route   GET /post?sender=<sender_id>
+// @desc    Get posts by sender
+// @access  Private
+router.get("/", getPostsBySender);
 
 // @route   PUT /post/:id
 // @desc    Update post by ID
-// @access  Public
+// @access  Private
 router.put("/:id", updatePost);
 
-module.exports = router;
+export default router;
