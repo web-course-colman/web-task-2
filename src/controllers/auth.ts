@@ -1,20 +1,26 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import express from "express";
+import User from "../models/User";
 
-const register = async (req, res) => {
+const register = async (
+  req: express.Request,
+  res: express.Response
+): Promise<void> => {
   try {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      return res
+      res
         .status(400)
         .json({ message: "Username, email, and password are required" });
+      return;
     }
 
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      res.status(400).json({ message: "User already exists" });
+      return;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -26,39 +32,41 @@ const register = async (req, res) => {
     });
 
     const savedUser = await user.save();
-    res
-      .status(201)
-      .json({
-        message: "User registered successfully",
-        user: {
-          id: savedUser._id,
-          username: savedUser.username,
-          email: savedUser.email,
-        },
-      });
+    res.status(201).json({
+      message: "User registered successfully",
+      user: {
+        id: savedUser._id,
+        username: savedUser.username,
+        email: savedUser.email,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: (error as Error).message });
   }
 };
 
-const login = async (req, res) => {
+const login = async (
+  req: express.Request,
+  res: express.Response
+): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
+      res.status(400).json({ message: "Email and password are required" });
+      return;
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      res.status(400).json({ message: "Invalid credentials" });
+      return;
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      res.status(400).json({ message: "Invalid credentials" });
+      return;
     }
 
     const accessToken = jwt.sign(
@@ -77,21 +85,26 @@ const login = async (req, res) => {
 
     res.json({ accessToken, refreshToken });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: (error as Error).message });
   }
 };
 
-const logout = async (req, res) => {
+const logout = async (
+  req: express.Request,
+  res: express.Response
+): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ message: "Refresh token required" });
+      res.status(400).json({ message: "Refresh token required" });
+      return;
     }
 
     const user = await User.findOne({ refreshTokens: refreshToken });
     if (!user) {
-      return res.status(400).json({ message: "Invalid refresh token" });
+      res.status(400).json({ message: "Invalid refresh token" });
+      return;
     }
 
     user.refreshTokens = user.refreshTokens.filter(
@@ -101,29 +114,35 @@ const logout = async (req, res) => {
 
     res.json({ message: "Logged out successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: (error as Error).message });
   }
 };
 
-const refreshToken = async (req, res) => {
+const refreshTokenFunc = async (
+  req: express.Request,
+  res: express.Response
+): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ message: "Refresh token required" });
+      res.status(400).json({ message: "Refresh token required" });
+      return;
     }
 
     const user = await User.findOne({ refreshTokens: refreshToken });
     if (!user) {
-      return res.status(403).json({ message: "Invalid refresh token" });
+      res.status(403).json({ message: "Invalid refresh token" });
+      return;
     }
 
     jwt.verify(
       refreshToken,
       process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
-      (err, decoded) => {
+      (err: jwt.VerifyErrors | null, decoded: any) => {
         if (err) {
-          return res.status(403).json({ message: "Invalid refresh token" });
+          res.status(403).json({ message: "Invalid refresh token" });
+          return;
         }
 
         const accessToken = jwt.sign(
@@ -135,13 +154,8 @@ const refreshToken = async (req, res) => {
       }
     );
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: (error as Error).message });
   }
 };
 
-module.exports = {
-  register,
-  login,
-  logout,
-  refreshToken,
-};
+export { register, login, logout, refreshTokenFunc as refreshToken };

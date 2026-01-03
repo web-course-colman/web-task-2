@@ -1,7 +1,8 @@
-const request = require("supertest");
-const mongoose = require("mongoose");
-const Post = require("../src/models/Post");
-const User = require("../src/models/User");
+import request from "supertest";
+import mongoose from "mongoose";
+import express from "express";
+import Post from "../src/models/Post";
+import User from "../src/models/User";
 
 const testUser = {
   username: "postTestuser",
@@ -9,14 +10,15 @@ const testUser = {
   password: "password123",
 };
 
-let app;
-let accessToken;
+let app: express.Application;
+let accessToken: string;
 
 beforeAll(async () => {
   // Set test database URI
   process.env.MONGO_URI = "mongodb://localhost:27017/web-task-2-test-post";
-  // Require app, which will connect to test DB
-  app = require("../src/app");
+  // Dynamically import app after setting env
+  const appModule = await import("../src/app");
+  app = appModule.createApp();
 });
 
 const getToken = async () => {

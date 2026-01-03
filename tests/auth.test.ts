@@ -1,6 +1,7 @@
-const request = require("supertest");
-const mongoose = require("mongoose");
-const User = require("../src/models/User");
+import request from "supertest";
+import mongoose from "mongoose";
+import express from "express";
+import User from "../src/models/User";
 
 const testUser = {
   username: "authTestuser",
@@ -8,13 +9,14 @@ const testUser = {
   password: "password123",
 };
 
-let app;
+let app: express.Application;
 
 beforeAll(async () => {
   // Set test database URI
   process.env.MONGO_URI = "mongodb://localhost:27017/web-task-2-test-auth";
-  // Require app, which will connect to test DB
-  app = require("../src/app");
+  // Dynamically import app after setting env
+  const appModule = await import("../src/app");
+  app = appModule.createApp();
 });
 
 afterEach(async () => {
