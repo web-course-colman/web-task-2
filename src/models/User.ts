@@ -5,6 +5,7 @@ interface IUser {
   email: string;
   password: string;
   refreshTokens: string[];
+  bio?: string;
   createdAt: Date;
 }
 
@@ -28,6 +29,10 @@ const userSchema = new mongoose.Schema<IUser>({
       type: String,
     },
   ],
+  bio: {
+    type: String,
+    default: "",
+  },
   createdAt: {
     type: Date,
     default: Date.now,

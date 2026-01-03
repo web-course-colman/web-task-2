@@ -5,6 +5,8 @@ import swaggerUi from "swagger-ui-express";
 import { authenticateToken } from "./middleware/auth";
 import authRoutes from "./routes/auth";
 import postRoutes from "./routes/post";
+import commentsRoutes from "./routes/comments";
+import userRoutes from "./routes/user";
 import { swaggerSpec } from "./config/swagger";
 
 export const createApp = (): express.Application => {
@@ -28,6 +30,8 @@ export const createApp = (): express.Application => {
 
   // All Routes
   app.use("/post", postRoutes);
+  app.use("/comments", commentsRoutes);
+  app.use("/user", userRoutes);
 
   // Default route
   app.get("/", (req: express.Request, res: express.Response) =>
