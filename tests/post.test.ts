@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import express from "express";
 import Post from "../src/models/Post";
 import User from "../src/models/User";
+import jwt from "jsonwebtoken";
 
 const testUser = {
   username: "postTestuser",
@@ -41,6 +42,7 @@ afterEach(async () => {
   await Post.deleteMany({});
   await User.deleteMany({});
   accessToken = "";
+  jest.restoreAllMocks();
 });
 
 afterAll(async () => {
@@ -65,6 +67,30 @@ describe("Posts API", () => {
     expect(response.body.sender).toBe(user!._id.toString());
   });
 
+  it("should fail to create a post when message missing", async () => {
+    const token = await getToken();
+    await request(app)
+      .post("/post")
+      .set("Authorization", `Bearer ${token}`)
+      .send({})
+      .expect(400);
+  });
+
+  it("should return 500 when creating a post fails (invalid sender id in token)", async () => {
+    // Craft a validly-signed token (so middleware passes) but with an invalid user.id
+    const badToken = jwt.sign(
+      { id: "not-an-objectid", username: "x" },
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "15m" }
+    );
+
+    await request(app)
+      .post("/post")
+      .set("Authorization", `Bearer ${badToken}`)
+      .send({ message: "x" })
+      .expect(500);
+  });
+
   it("should get all posts", async () => {
     const token = await getToken();
     const user = await User.findOne({ email: testUser.email });
@@ -77,6 +103,18 @@ describe("Posts API", () => {
 
     expect(response.body.length).toBe(1);
     expect(response.body[0].message).toBe("Test message");
+  });
+
+  it("should return 500 when getAllPosts throws", async () => {
+    const token = await getToken();
+    jest.spyOn(Post, "find").mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
+
+    await request(app)
+      .get("/post")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(500);
   });
 
   it("should get post by id", async () => {
@@ -93,6 +131,24 @@ describe("Posts API", () => {
       .expect(200);
 
     expect(response.body.message).toBe("Test message");
+  });
+
+  it("should return 404 when post not found", async () => {
+    const token = await getToken();
+    const missingId = new mongoose.Types.ObjectId().toString();
+
+    await request(app)
+      .get(`/post/${missingId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it("should return 500 when post id is invalid", async () => {
+    const token = await getToken();
+    await request(app)
+      .get(`/post/not-an-objectid`)
+      .set("Authorization", `Bearer ${token}`)
+      .expect(500);
   });
 
   it("should get posts by sender", async () => {
@@ -129,6 +185,38 @@ describe("Posts API", () => {
       .expect(200);
 
     expect(response.body.message).toBe("Updated message");
+  });
+
+  it("should fail to update post when message missing", async () => {
+    const token = await getToken();
+    const user = await User.findOne({ email: testUser.email });
+    const post = await Post.create({ message: "M", sender: user!._id });
+
+    await request(app)
+      .put(`/post/${post._id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({})
+      .expect(400);
+  });
+
+  it("should return 404 when updating missing post", async () => {
+    const token = await getToken();
+    const missingId = new mongoose.Types.ObjectId().toString();
+
+    await request(app)
+      .put(`/post/${missingId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ message: "x" })
+      .expect(404);
+  });
+
+  it("should return 500 when updating with invalid id", async () => {
+    const token = await getToken();
+    await request(app)
+      .put(`/post/not-an-objectid`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ message: "x" })
+      .expect(500);
   });
 
   it("should fail to update post of another user", async () => {

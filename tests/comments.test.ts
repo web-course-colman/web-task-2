@@ -59,6 +59,7 @@ afterEach(async () => {
     await User.deleteMany({});
     accessToken = ""; // Reset token
     testPostId = ""; // Reset post ID
+    jest.restoreAllMocks();
 });
 
 afterAll(async () => {
@@ -85,6 +86,25 @@ describe("Comments API", () => {
         expect(response.body.postId).toBe(postId);
     });
 
+    it("should fail to create a comment when missing fields", async () => {
+        const token = await getToken();
+        const postId = await createTestPost();
+        await request(app)
+            .post("/comments")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ postId })
+            .expect(400);
+    });
+
+    it("should return 500 when creating comment fails (invalid postId)", async () => {
+        const token = await getToken();
+        await request(app)
+            .post("/comments")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ postId: "not-an-objectid", message: "x" })
+            .expect(500);
+    });
+
     it("should get comments for a post", async () => {
         const token = await getToken();
         const postId = await createTestPost();
@@ -108,6 +128,32 @@ describe("Comments API", () => {
         expect(response.body.length).toBe(2);
     });
 
+    it("should get all comments when no postId filter", async () => {
+        const token = await getToken();
+        const postId = await createTestPost();
+        const user = await User.findOne({ email: testUser.email });
+        await Comment.create({ postId, message: "C1", sender: user!._id });
+
+        const response = await request(app)
+            .get(`/comments`)
+            .set("Authorization", `Bearer ${token}`)
+            .expect(200);
+
+        expect(response.body.length).toBe(1);
+    });
+
+    it("should return 500 when getAllComments throws", async () => {
+        const token = await getToken();
+        jest.spyOn(Comment, "find").mockImplementationOnce(() => {
+            throw new Error("boom");
+        });
+
+        await request(app)
+            .get(`/comments`)
+            .set("Authorization", `Bearer ${token}`)
+            .expect(500);
+    });
+
     it("should get comment by id", async () => {
         const token = await getToken();
         const postId = await createTestPost();
@@ -124,6 +170,23 @@ describe("Comments API", () => {
             .expect(200);
 
         expect(response.body.message).toBe("Comment to find");
+    });
+
+    it("should return 404 when comment not found", async () => {
+        const token = await getToken();
+        const missingId = new mongoose.Types.ObjectId().toString();
+        await request(app)
+            .get(`/comments/${missingId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .expect(404);
+    });
+
+    it("should return 500 when comment id is invalid", async () => {
+        const token = await getToken();
+        await request(app)
+            .get(`/comments/not-an-objectid`)
+            .set("Authorization", `Bearer ${token}`)
+            .expect(500);
     });
 
     it("should update comment", async () => {
@@ -146,6 +209,40 @@ describe("Comments API", () => {
             .expect(200);
 
         expect(response.body.message).toBe("Updated Message");
+    });
+
+    it("should fail to update comment when missing fields", async () => {
+        const token = await getToken();
+        const postId = await createTestPost();
+        const user = await User.findOne({ email: testUser.email });
+        const comment = await Comment.create({ postId, message: "M", sender: user!._id });
+
+        await request(app)
+            .put(`/comments/${comment._id}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ postId })
+            .expect(400);
+    });
+
+    it("should return 404 when updating missing comment", async () => {
+        const token = await getToken();
+        const missingId = new mongoose.Types.ObjectId().toString();
+        const postId = await createTestPost();
+        await request(app)
+            .put(`/comments/${missingId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ postId, message: "x" })
+            .expect(404);
+    });
+
+    it("should return 500 when updating with invalid id", async () => {
+        const token = await getToken();
+        const postId = await createTestPost();
+        await request(app)
+            .put(`/comments/not-an-objectid`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ postId, message: "x" })
+            .expect(500);
     });
 
     it("should fail to update comment of another user", async () => {
@@ -185,6 +282,23 @@ describe("Comments API", () => {
 
         const check = await Comment.findById(comment._id);
         expect(check).toBeNull();
+    });
+
+    it("should return 404 when deleting missing comment", async () => {
+        const token = await getToken();
+        const missingId = new mongoose.Types.ObjectId().toString();
+        await request(app)
+            .delete(`/comments/${missingId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .expect(404);
+    });
+
+    it("should return 500 when deleting with invalid id", async () => {
+        const token = await getToken();
+        await request(app)
+            .delete(`/comments/not-an-objectid`)
+            .set("Authorization", `Bearer ${token}`)
+            .expect(500);
     });
 
     it("should fail to delete comment of another user", async () => {
